@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Dev Browser</title>
+    <style>
+        :root {
+            --accent: #007acc;
+            --accent-glow: rgba(0, 122, 204, 0.25);
+            --bg: #1a1a1a;
+            --surface: #242424;
+            --surface2: #2d2d2d;
+            --border: #3e3e42;
+            --text: #e0e0e0;
+            --text-muted: #888;
+            --badge-bg: rgba(0, 122, 204, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-y: auto;
+            padding: 48px 24px 80px;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 56px;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: var(--badge-bg);
+            color: var(--accent);
+            border: 1px solid rgba(0, 122, 204, 0.3);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 4px 14px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #fff 30%, #007acc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+            line-height: 1.1;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 540px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            max-width: 1080px;
+            margin: 0 auto 60px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+        }
+
+        .card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+            transform: translateY(-3px);
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 14px;
+            display: block;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .card-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.65;
+            margin-bottom: 16px;
+        }
+
+        .how-it-works {
+            background: var(--surface2);
+            border-radius: 8px;
+            padding: 16px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .how-it-works-title {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .how-it-works ol,
+        .how-it-works ul {
+            padding-left: 18px;
+        }
+
+        .how-it-works li {
+            font-size: 0.82rem;
+            color: #ccc;
+            line-height: 1.7;
+            margin-bottom: 4px;
+        }
+
+        .kbd {
+            display: inline-block;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-bottom-width: 2px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 11px;
+            padding: 1px 6px;
+            color: #ccc;
+        }
+
+        .shortcut-grid {
+            max-width: 600px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px 20px;
+            align-items: center;
+        }
+
+        .shortcut-grid .label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="hero">
+        <div class="hero-badge">Developer Toolbox</div>
+        <h1>Dev Browser</h1>
+        <p class="subtitle">A precision browser built for developers and designers. Every tool in this shell is
+            purpose-built to save you time during the frontend development loop.</p>
+    </div>
+
+    <p class="section-title">Core Features</p>
+
+    <div class="features">
+
+        <!-- Tabs -->
+        <div class="card">
+            <span class="card-icon">🗂️</span>
+            <div class="card-title">Multi-Tab Browsing</div>
+            <p class="card-desc">Manage multiple pages simultaneously in a single window. Each tab maintains its own
+                independent browsing session and navigation history so you can compare multiple URLs side by side
+                without losing context.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Click <strong>＋</strong> in the tab bar to open a new blank tab.</li>
+                    <li>Type a URL in the address bar and press <kbd class="kbd">Enter</kbd> to load it.</li>
+                    <li>Click any tab to switch to it — the address bar and webview update instantly.</li>
+                    <li>Click <strong>×</strong> on a tab to close it. The last tab is always preserved.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Split View -->
+        <div class="card">
+            <span class="card-icon">⊞</span>
+            <div class="card-title">Split View — Mobile Preview</div>
+            <p class="card-desc">Renders the same URL simultaneously in both a full desktop viewport and a realistic
+                mobile device frame. Ideal for catching layout breaks immediately without switching tools or browser
+                windows.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Click the <strong>⊞</strong> icon in the toolbar to toggle split view on.</li>
+                    <li>A mobile panel appears on the right with a device frame and shadow.</li>
+                    <li>Use the <strong>device preset dropdown</strong> in the panel header to switch between iPhone SE,
+                        Pixel 7, iPad Air, and more. The webview dimensions update live.</li>
+                    <li>Both panes load the same URL. Navigate in the address bar to update both simultaneously.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Design Overlay -->
+        <div class="card">
+            <span class="card-icon">🖼️</span>
+            <div class="card-title">Design Overlay (Onion Skinning)</div>
+            <p class="card-desc">Superimpose any design mockup — Figma exports, Sketch artboards, or PNGs — directly on
+                top of the live page. Adjust opacity to fade between the design layer and the real implementation,
+                making pixel-perfect comparisons effortless.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Click the <strong>🖼️</strong> button in the toolbar to open a file picker.</li>
+                    <li>Select any image file (PNG, JPEG, WebP, SVG).</li>
+                    <li>The image is sized to fill the primary webview as an absolute overlay layer with
+                        <code>pointer-events: none</code> — so clicks still pass through to the real page.</li>
+                    <li>Drag the <strong>opacity slider</strong> that appears to blend between 0% (only the site) and
+                        100% (only the mockup).</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Wireframe Mode -->
+        <div class="card">
+            <span class="card-icon">🕸️</span>
+            <div class="card-title">Wireframe Mode</div>
+            <p class="card-desc">One-click structural X-ray of any page. All backgrounds are stripped and every DOM
+                element gets a 1px red outline, making the box model, layout nesting, and spacing issues immediately
+                visible without opening DevTools.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Click <strong>🕸️</strong> to activate wireframe mode. The button turns blue when active.</li>
+                    <li>The browser injects a CSS stylesheet directly into the webview using Electron's
+                        <code>webview.insertCSS()</code> API, which applies
+                        <code>outline: 1px solid red !important</code> and removes all background colors from every
+                        element.</li>
+                    <li>This affects every element in the DOM tree — divs, images, buttons, inputs — all at once.</li>
+                    <li>Click <strong>🕸️</strong> again to disable it. The page reloads to cleanly restore original
+                        styles.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Rulers -->
+        <div class="card">
+            <span class="card-icon">📏</span>
+            <div class="card-title">Measurement Rulers</div>
+            <p class="card-desc">Pixel rulers along the top and left edges of the content area let you visually measure
+                distances, verify spacing values, and align elements accurately — just like Photoshop or Figma guides,
+                but live inside your browser.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Click <strong>📏</strong> to toggle the rulers on. Horizontal (top) and vertical (left) rulers
+                        appear.</li>
+                    <li>Tick marks are placed every <strong>100px</strong> with numeric labels indicating the pixel
+                        offset from the origin.</li>
+                    <li>The content area gains padding to make room for the rulers so no webview content is obscured.
+                    </li>
+                    <li>Click <strong>📏</strong> again to dismiss the rulers without affecting the page.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- DevTools -->
+        <div class="card">
+            <span class="card-icon">🔍</span>
+            <div class="card-title">Per-Pane DevTools</div>
+            <p class="card-desc">Each webview pane has its own independent Chrome DevTools instance. Inspect the DOM,
+                profile JavaScript, and monitor network requests for the desktop view and the mobile view separately —
+                critical when a bug only appears at a specific viewport size.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Each pane header contains a small <strong>🔍</strong> button.</li>
+                    <li>Clicking it calls <code>webview.openDevTools()</code> via a ref directly on that pane's
+                        <code>&lt;webview&gt;</code> element.</li>
+                    <li>A full Chrome DevTools window opens, scoped entirely to that webview's web contents — including
+                        its own Console, Network panel, and Elements tree.</li>
+                    <li>You can have DevTools open for both the desktop and mobile pane at the same time.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Network Throttle -->
+        <div class="card">
+            <span class="card-icon">🐢</span>
+            <div class="card-title">Network Throttle</div>
+            <p class="card-desc">Simulate real-world network conditions — from blazing fast 4G down to painful Slow 3G
+                or complete offline mode. Test how your app loads for users on mobile data, highlight large bundle
+                sizes, and verify your offline fallback behaviour.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Use the <strong>⚡ / 🐢 / 🚫</strong> dropdown in the toolbar to select a profile.</li>
+                    <li>Profiles include: No Throttle, Fast 4G, Slow 4G, Fast 3G, Slow 3G, and Offline.</li>
+                    <li>Each profile defines a <code>downloadThroughput</code>, <code>uploadThroughput</code>, and
+                        <code>latency</code> value (in bytes/s and ms).</li>
+                    <li>The selection is sent via Electron's IPC bridge to the main process, which applies
+                        <code>Network.emulateNetworkConditions</code> through the Chrome DevTools Protocol to the active
+                        webview.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Nav Buttons -->
+        <div class="card">
+            <span class="card-icon">«»↻</span>
+            <div class="card-title">Navigation Controls</div>
+            <p class="card-desc">Back, Forward, and Reload buttons in the toolbar work directly on the primary webview,
+                just like a real browser. Navigation history is maintained per tab session, so each tab has its own
+                independent back/forward stack.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>The primary webview element is accessed via a React <code>ref</code> that is passed from
+                        <code>App.tsx</code> into the <code>Toolbar</code> component.</li>
+                    <li><strong>«</strong> calls <code>webview.goBack()</code>, <strong>»</strong> calls
+                        <code>webview.goForward()</code>, and <strong>↻</strong> calls <code>webview.reload()</code> on
+                        the Electron WebviewTag API.</li>
+                    <li>Typing a URL and pressing <kbd class="kbd">Enter</kbd> updates the React state, which flows as a
+                        new <code>src</code> prop to the webview — React's declarative model handles the navigation.
+                    </li>
+                    <li>Switching tabs reinitializes the webview's <code>src</code> by keying the component on
+                        <code>activeTabId</code>, ensuring each tab loads the correct URL independently.</li>
+                </ol>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        Dev Browser — built with Electron, Vite, React, and TypeScript.<br>
+        Type a URL in the address bar above to start browsing.
+    </footer>
+</body>
+
+</html>
