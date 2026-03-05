@@ -2,6 +2,8 @@ import { app, BrowserWindow, session, ipcMain, protocol } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { spawn } from 'child_process';
+import http from 'http';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -160,7 +162,62 @@ function createWindow() {
     });
 }
 
-app.whenReady().then(() => {
+// ── Go Proxy Sidecar ───────────────────────────────────────────────────────────────
+const PROXY_PORT = 8877;
+let goProxy = null;
+
+function startGoProxy() {
+    const binaryName = process.platform === 'win32' ? 'devproxy.exe' : 'devproxy';
+    const binaryPath = app.isPackaged
+        ? path.join(process.resourcesPath, 'sidecars', binaryName)
+        : path.join(__dirname, '../sidecars', binaryName);
+
+    if (!fs.existsSync(binaryPath)) {
+        console.warn('[proxy] devproxy binary not found at:', binaryPath);
+        return;
+    }
+
+    goProxy = spawn(binaryPath, ['--port', String(PROXY_PORT)], {
+        stdio: 'pipe',
+        windowsHide: true,  // Prevent a console window opening on Windows
+    });
+    goProxy.stdout?.on('data', d => console.log('[proxy]', d.toString().trim()));
+    goProxy.stderr?.on('data', d => console.error('[proxy]', d.toString().trim()));
+    goProxy.on('error', err => console.error('[proxy] spawn error:', err));
+    goProxy.on('exit', code => console.log('[proxy] exited with code', code));
+    console.log('[proxy] started devproxy on port', PROXY_PORT);
+}
+
+// Poll until the proxy is ready, then set the session proxy.
+function waitForProxy(retries = 20) {
+    return new Promise((resolve) => {
+        const attempt = (n) => {
+            http.get(`http://127.0.0.1:${PROXY_PORT}/health`, (res) => {
+                if (res.statusCode === 200) {
+                    resolve();
+                } else {
+                    retry(n);
+                }
+            }).on('error', () => retry(n));
+        };
+        const retry = (n) => {
+            if (n <= 0) { resolve(); return; } // give up silently
+            setTimeout(() => attempt(n - 1), 300);
+        };
+        attempt(retries);
+    });
+}
+
+app.whenReady().then(async () => {
+    startGoProxy();
+    await waitForProxy();
+
+    // Only proxy plain HTTP for now — HTTPS MITM would require CA cert injection in Electron.
+    // HTTPS goes direct (no ERR_FAILED). Full TLS interception can be added in a future iteration.
+    session.defaultSession.setProxy({
+        proxyRules: `http=http://127.0.0.1:${PROXY_PORT};direct://`
+    });
+
     createWindow();
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -168,6 +225,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-    db.close();
+    if (goProxy) { goProxy.kill(); goProxy = null; }
     if (process.platform !== 'darwin') app.quit();
 });
+

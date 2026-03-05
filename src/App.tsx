@@ -5,6 +5,7 @@ import { WebviewPane } from './components/WebviewPane';
 import { Rulers } from './components/Rulers';
 import { TabBar } from './components/TabBar';
 import { HistoryPanel } from './components/HistoryPanel';
+import { ProxyPanel } from './components/ProxyPanel';
 import { useTabs } from './hooks/useTabs';
 import { useHistory } from './hooks/useHistory';
 import { DEFAULT_PROFILE, type NetworkProfile } from './lib/networkProfiles';
@@ -42,6 +43,7 @@ function App() {
   const [wireframeMode, setWireframeMode] = useState(false);
   const [showRulers, setShowRulers] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showProxy, setShowProxy] = useState(false);
   const [networkProfile, setNetworkProfile] = useState<NetworkProfile>(DEFAULT_PROFILE);
 
   // Derived from the active tab — each tab has its own split view state
@@ -137,6 +139,7 @@ function App() {
         wireframeMode={wireframeMode} toggleWireframe={toggleWireframe}
         showRulers={showRulers} setShowRulers={setShowRulers}
         showHistory={showHistory} setShowHistory={setShowHistory}
+        showProxy={showProxy} setShowProxy={setShowProxy}
         overlayImage={overlayImage} handleImageUpload={handleImageUpload}
         clearOverlay={clearOverlay}
         overlayOpacity={overlayOpacity} setOverlayOpacity={setOverlayOpacity}
@@ -147,6 +150,9 @@ function App() {
       <div className="app-body">
         {showHistory && (
           <HistoryPanel onNavigate={navigateToUrl} />
+        )}
+        {showProxy && (
+          <ProxyPanel />
         )}
 
         <div className={`content-area ${showRulers ? 'with-rulers' : ''}`}>

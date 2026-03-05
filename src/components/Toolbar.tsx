@@ -15,6 +15,8 @@ interface ToolbarProps {
     setShowRulers: (v: boolean) => void;
     showHistory: boolean;
     setShowHistory: (v: boolean) => void;
+    showProxy: boolean;
+    setShowProxy: (v: boolean) => void;
     overlayImage: string | null;
     handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
     clearOverlay: () => void;
@@ -36,6 +38,7 @@ export function Toolbar({
     wireframeMode, toggleWireframe,
     showRulers, setShowRulers,
     showHistory, setShowHistory,
+    showProxy, setShowProxy,
     overlayImage, handleImageUpload, clearOverlay,
     overlayOpacity, setOverlayOpacity,
     handleNavigate,
@@ -101,6 +104,12 @@ export function Toolbar({
                     onClick={() => setShowHistory(!showHistory)}
                     title="Browsing History"
                 >🕑</button>
+
+                <button
+                    className={`icon-btn toggle-btn ${showProxy ? 'active' : ''}`}
+                    onClick={() => setShowProxy(!showProxy)}
+                    title="HTTP Proxy Inspector"
+                >🔀</button>
 
                 <button className={`icon-btn toggle-btn ${wireframeMode ? 'active' : ''}`} onClick={toggleWireframe} title="Wireframe Mode">🕸️</button>
                 <button className={`icon-btn toggle-btn ${showRulers ? 'active' : ''}`} onClick={() => setShowRulers(!showRulers)} title="Rulers">📏</button>
