@@ -15,7 +15,7 @@ declare global {
     interface IntrinsicElements {
       webview: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
         src?: string;
-        allowpopups?: string | boolean;
+        allowpopups?: boolean | undefined;
       };
     }
   }
@@ -36,13 +36,17 @@ function App() {
   const { addEntry } = useHistory();
 
   const [urlInput, setUrlInput] = useState(activeTab.url);
-  const [splitView, setSplitView] = useState(false);
+  // splitView is now PER-TAB — stored in tab.splitView, not a global boolean
   const [overlayImage, setOverlayImage] = useState<string | null>(null);
   const [overlayOpacity, setOverlayOpacity] = useState(0.5);
   const [wireframeMode, setWireframeMode] = useState(false);
   const [showRulers, setShowRulers] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [networkProfile, setNetworkProfile] = useState<NetworkProfile>(DEFAULT_PROFILE);
+
+  // Derived from the active tab — each tab has its own split view state
+  const splitView = activeTab.splitView ?? false;
+  const setSplitView = (val: boolean) => updateTab(activeTabId, { splitView: val });
 
   // ── Webview refs: one per tab, keyed by tabId ────────────────────────────
   // We render ALL webviews simultaneously and CSS-hide inactive ones.

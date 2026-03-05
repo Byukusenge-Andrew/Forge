@@ -29,7 +29,7 @@ export function HistoryPanel({ onNavigate }: HistoryPanelProps) {
                     onChange={e => setSearch(e.target.value)}
                 />
                 {history.length > 0 && (
-                    <button className="danger-btn xs-btn" onClick={clearHistory} title="Clear all history">🗑️</button>
+                    <button className="danger-btn  px-2 " onClick={clearHistory} title="Clear all history"><span className='px-2'>clear</span></button>
                 )}
             </div>
 

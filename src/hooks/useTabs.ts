@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import { createTab, type Tab } from '../lib/tabTypes';
 
-const HOME_URL = 'http://localhost:5173/landing.html';
+const HOME_URL = 'app://localhost/landing.html';
 
 /** Creates the initial home tab with a stable ID. Called once via lazy useState. */
 function makeInitialTab(): Tab {

@@ -12,6 +12,8 @@ export interface Tab {
     title: string;
     /** The full URL currently loaded in this tab. */
     url: string;
+    /** Whether the mobile split-view is active for this specific tab. */
+    splitView?: boolean;
     /** Optional favicon URL. Reserved for future use. */
     favicon?: string;
 }
@@ -23,9 +25,16 @@ export interface Tab {
  * @returns    A new Tab object ready to be inserted into the tabs array.
  */
 export function createTab(url: string, title?: string): Tab {
+    let defaultTitle = 'New Tab';
+    try {
+        const parsed = new URL(url);
+        defaultTitle = parsed.hostname || parsed.pathname || url;
+    } catch {
+        defaultTitle = url;
+    }
     return {
         id: crypto.randomUUID(),
-        title: title ?? (new URL(url.startsWith('http') ? url : 'https://' + url).hostname || 'New Tab'),
+        title: title ?? defaultTitle,
         url,
     };
 }

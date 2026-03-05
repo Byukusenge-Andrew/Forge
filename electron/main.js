@@ -1,52 +1,59 @@
-import { app, BrowserWindow, session, ipcMain } from 'electron';
+import { app, BrowserWindow, session, ipcMain, protocol } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
 import fs from 'fs';
-
-const require = createRequire(import.meta.url);
-const Database = require('better-sqlite3');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ── SQLite setup ─────────────────────────────────────────────────────────────
+// ── JSON-based History (no native modules required) ───────────────────────────
+// History is stored as an array of entry objects, newest-first, in history.json.
+// This avoids the better-sqlite3 NODE_MODULE_VERSION mismatch entirely.
 const userDataPath = app.getPath('userData');
-const dbPath = path.join(userDataPath, 'devbrowser.db');
-const db = new Database(dbPath);
+const historyPath = path.join(userDataPath, 'history.json');
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS history (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    url        TEXT NOT NULL,
-    title      TEXT,
-    visited_at TEXT NOT NULL DEFAULT (datetime('now'))
-  );
-  CREATE TABLE IF NOT EXISTS settings (
-    key   TEXT PRIMARY KEY,
-    value TEXT
-  );
-`);
+function readHistory() {
+    try {
+        return JSON.parse(fs.readFileSync(historyPath, 'utf-8'));
+    } catch {
+        return [];
+    }
+}
 
-// ── IPC: History ──────────────────────────────────────────────────────────────
+function writeHistory(entries) {
+    fs.writeFileSync(historyPath, JSON.stringify(entries, null, 2), 'utf-8');
+}
+
+// ── IPC: History ───────────────────────────────────────────────────────────────
 ipcMain.handle('history:add', (_e, { url, title }) => {
-    db.prepare('INSERT INTO history (url, title) VALUES (?, ?)').run(url, title ?? url);
+    const entries = readHistory();
+    const newEntry = {
+        id: Date.now(),
+        url,
+        title: title ?? url,
+        visited_at: new Date().toISOString(),
+    };
+    // Newest-first, keep latest 1000 entries only
+    entries.unshift(newEntry);
+    writeHistory(entries.slice(0, 1000));
     return { ok: true };
 });
 
 ipcMain.handle('history:get', (_e, { search = '' } = {}) => {
-    const like = `%${search}%`;
-    return db.prepare(
-        `SELECT id, url, title, visited_at FROM history
-     WHERE url LIKE ? OR title LIKE ?
-     ORDER BY visited_at DESC LIMIT 500`
-    ).all(like, like);
+    const lower = search.toLowerCase();
+    return readHistory().filter(e =>
+        !lower ||
+        e.url.toLowerCase().includes(lower) ||
+        (e.title ?? '').toLowerCase().includes(lower)
+    ).slice(0, 500);
 });
 
 ipcMain.handle('history:clear', () => {
-    db.prepare('DELETE FROM history').run();
+    writeHistory([]);
     return { ok: true };
 });
+
+
 
 // ── IPC: Settings ─────────────────────────────────────────────────────────────
 const settingsPath = path.join(userDataPath, 'settings.json');
@@ -64,58 +71,57 @@ ipcMain.handle('settings:save', (_e, data) => {
     return { ok: true };
 });
 
-// ── IPC: Network Throttle (via Chrome DevTools Protocol) ─────────────────
-// Electron's session.enableNetworkEmulation is notoriously unreliable for webviews.
-// We must attach the debugger to the webview's specific webContents to throttle it.
+// ── IPC: Network Throttle ─────────────────────────────────────────────────────
+// KEY INSIGHT: session.defaultSession is the Electron *shell* session.
+// Webview traffic flows through `webContents.fromId(id).session`.
+// We must call enableNetworkEmulation() on THAT session object directly.
 ipcMain.handle('network:throttle', async (_e, { webContentsId, ...profile }) => {
     try {
-        console.log(`[throttle] Received request for wcId=${webContentsId}`, profile);
-        if (!webContentsId) return { ok: false, error: 'No webContentsId provided' };
+        console.log(`[throttle] request wcId=${webContentsId}`, profile);
+        if (!webContentsId) return { ok: false, error: 'No webContentsId' };
 
         const { webContents } = await import('electron');
         const wc = webContents.fromId(webContentsId);
         if (!wc) {
-            console.log(`[throttle] Failed: WebContents ${webContentsId} not found`);
+            console.error(`[throttle] webContents ${webContentsId} not found`);
             return { ok: false, error: 'WebContents not found' };
         }
 
-        console.log(`[throttle] Found webContents: ${wc.id}. Attaching debugger...`);
-        try {
-            if (!wc.debugger.isAttached()) {
-                wc.debugger.attach('1.3');
-            }
-            // CRITICAL: The Network domain must be enabled before emulateNetworkConditions works
-            await wc.debugger.sendCommand('Network.enable');
-        } catch (err) {
-            console.warn('[throttle] Debugger attached warning:', err);
-        }
+        // Use the webview's OWN session — this is what controls its network stack
+        const ses = wc.session;
 
-        if (profile.offline || profile.downloadThroughput >= 0) {
-            console.log(`[throttle] Sending CDP Network.emulateNetworkConditions (throttled)`);
-            await wc.debugger.sendCommand('Network.emulateNetworkConditions', {
-                offline: profile.offline ?? false,
-                latency: Math.max(0, profile.latency ?? 0),
+        if (profile.offline) {
+            ses.enableNetworkEmulation({ offline: true });
+        } else if (profile.downloadThroughput !== -1 || profile.uploadThroughput !== -1) {
+            ses.enableNetworkEmulation({
+                offline: false,
+                latency: profile.latency ?? 0,
                 downloadThroughput: profile.downloadThroughput === -1 ? 0 : profile.downloadThroughput,
-                uploadThroughput: profile.uploadThroughput === -1 ? 0 : profile.uploadThroughput
+                uploadThroughput: profile.uploadThroughput === -1 ? 0 : profile.uploadThroughput,
             });
         } else {
-            console.log(`[throttle] Sending CDP Network.emulateNetworkConditions (clear)`);
-            await wc.debugger.sendCommand('Network.emulateNetworkConditions', {
-                offline: false,
-                latency: 0,
-                downloadThroughput: 0,
-                uploadThroughput: 0
-            });
+            // "No Throttle" — remove all emulation
+            ses.disableNetworkEmulation();
         }
-        console.log(`[throttle] Success`);
+
+        console.log(`[throttle] applied via session ${ses.storagePath ?? '(default)'}`);
         return { ok: true };
     } catch (err) {
-        console.error('[throttle] CDP error:', err);
+        console.error('[throttle] error:', err);
         return { ok: false, error: String(err) };
     }
 });
+;
 
 // ── Window ────────────────────────────────────────────────────────────────────
+
+// Register `app://` protocol to serve files from the /public folder.
+// This avoids passing landing.html through Vite's dev-server transform pipeline
+// (which causes ERR_ABORTED inside <webview> tags).
+protocol.registerSchemesAsPrivileged([
+    { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }
+]);
+
 function createWindow() {
     const mainWindow = new BrowserWindow({
         width: 1400,
@@ -133,7 +139,17 @@ function createWindow() {
         mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     }
 
-    // Relax CSP so external sites load inside webviews
+    // Register the app:// protocol handler (must happen after session is available)
+    // Maps app://filename => <projectRoot>/public/filename
+    const publicDir = app.isPackaged
+        ? path.join(process.resourcesPath, 'public')
+        : path.join(__dirname, '../public');
+
+    session.defaultSession.protocol.registerFileProtocol('app', (request, callback) => {
+        const filePath = path.join(publicDir, new URL(request.url).pathname);
+        callback({ path: filePath });
+    });
+
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
         callback({
             responseHeaders: {

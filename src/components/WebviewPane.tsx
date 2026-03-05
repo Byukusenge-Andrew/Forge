@@ -8,7 +8,7 @@ declare global {
         interface IntrinsicElements {
             webview: React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
                 src?: string;
-                allowpopups?: string | boolean;
+                allowpopups?: boolean;
             };
         }
     }
@@ -111,7 +111,7 @@ export function WebviewPane({
                 <webview
                     ref={handleRef as unknown as React.RefObject<HTMLElement>}
                     src={url}
-                    allowpopups={true}
+                    allowpopups
                 />
                 {!isMobile && overlayImage && overlayOpacity !== undefined && (
                     <div
