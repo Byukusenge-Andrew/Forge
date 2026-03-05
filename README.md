@@ -18,6 +18,13 @@ npm run electron:dev
 
 ---
 
+## Download / Installation
+
+- **Pre-built Windows `.exe`**: Download the latest installer from the **GitHub Actions** tab (under Artifacts) or the **Releases** page (if available).
+- **Build Locally**: Run `npm run pack` to generate the `.exe` inside the `release/` directory.
+
+---
+
 ## Project Structure
 
 ```
