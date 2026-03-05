@@ -2,6 +2,8 @@
   "name": "dev-browser",
   "private": true,
   "version": "0.0.0",
+  "description": "DevBrowser App",
+  "author": "dev-browser",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
@@ -10,7 +12,30 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "tauri": "tauri",
-    "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\""
+    "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "pack": "npm run build && electron-builder --win",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.devbrowser.app",
+    "productName": "DevBrowser",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "public/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "sidecars/devproxy.exe",
+        "to": "sidecars/devproxy.exe"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    }
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",
@@ -29,7 +54,7 @@
     "@vitejs/plugin-react": "^5.1.1",
     "concurrently": "^9.2.1",
     "electron": "^40.7.0",
-    "electron-rebuild": "^3.2.9",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

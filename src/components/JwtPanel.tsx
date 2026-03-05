@@ -96,7 +96,7 @@ export function JwtPanel({ getActiveWebview }: JwtPanelProps) {
                     <button className="icon-btn xs-btn" onClick={() => setSelected(null)}>← Back</button>
                     <h4>{selected.key} <span className="jwt-store">({selected.store})</span></h4>
                     {selected.expired && <div className="jwt-tag expired" style={{ marginBottom: 8 }}>EXPIRED — exp: {fmt(selected.payload.exp as number)}</div>}
-                    {!selected.expired && selected.payload.exp && <div className="jwt-tag valid" style={{ marginBottom: 8 }}>Expires: {fmt(selected.payload.exp as number)}</div>}
+                    {!selected.expired && !!selected.payload.exp && <div className="jwt-tag valid" style={{ marginBottom: 8 }}>Expires: {fmt(selected.payload.exp as number)}</div>}
 
                     <h5>Header</h5>
                     <pre className="jwt-pre">{JSON.stringify(selected.header, null, 2)}</pre>

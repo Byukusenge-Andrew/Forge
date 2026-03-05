@@ -1,0 +1,16 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.devbrowser.app
+productName: DevBrowser
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+      - public/**/*
+extraResources:
+  - from: sidecars/devproxy.exe
+    to: sidecars/devproxy.exe
+win:
+  target: nsis
+electronVersion: 40.7.0
