@@ -6,6 +6,8 @@ import { Rulers } from './components/Rulers';
 import { TabBar } from './components/TabBar';
 import { HistoryPanel } from './components/HistoryPanel';
 import { ProxyPanel } from './components/ProxyPanel';
+import { JwtPanel } from './components/JwtPanel';
+import { SecurityPanel } from './components/SecurityPanel';
 import { useTabs } from './hooks/useTabs';
 import { useHistory } from './hooks/useHistory';
 import { DEFAULT_PROFILE, type NetworkProfile } from './lib/networkProfiles';
@@ -44,6 +46,9 @@ function App() {
   const [showRulers, setShowRulers] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showProxy, setShowProxy] = useState(false);
+  const [showJwt, setShowJwt] = useState(false);
+  const [showSecurity, setShowSecurity] = useState(false);
+  const [distanceActive, setDistanceActive] = useState(false);
   const [networkProfile, setNetworkProfile] = useState<NetworkProfile>(DEFAULT_PROFILE);
 
   // Derived from the active tab — each tab has its own split view state
@@ -140,6 +145,9 @@ function App() {
         showRulers={showRulers} setShowRulers={setShowRulers}
         showHistory={showHistory} setShowHistory={setShowHistory}
         showProxy={showProxy} setShowProxy={setShowProxy}
+        showJwt={showJwt} setShowJwt={setShowJwt}
+        showSecurity={showSecurity} setShowSecurity={setShowSecurity}
+        distanceActive={distanceActive} setDistanceActive={setDistanceActive}
         overlayImage={overlayImage} handleImageUpload={handleImageUpload}
         clearOverlay={clearOverlay}
         overlayOpacity={overlayOpacity} setOverlayOpacity={setOverlayOpacity}
@@ -153,6 +161,12 @@ function App() {
         )}
         {showProxy && (
           <ProxyPanel />
+        )}
+        {showJwt && (
+          <JwtPanel getActiveWebview={getActiveWv} />
+        )}
+        {showSecurity && (
+          <SecurityPanel activeUrl={activeTab.url} />
         )}
 
         <div className={`content-area ${showRulers ? 'with-rulers' : ''}`}>

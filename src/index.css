@@ -850,3 +850,127 @@ webview {
   font-size: 10px;
   color: #f0a060;
 }
+
+/* ── JWT Decoder ──────────────────────────────────────────────────────────── */
+.jwt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.jwt-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.jwt-item:hover {
+  border-color: #7bb3f0;
+}
+
+.jwt-key {
+  font-weight: 600;
+  flex: 1;
+}
+
+.jwt-store {
+  font-size: 11px;
+  color: #888;
+}
+
+.jwt-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.jwt-tag.valid {
+  background: #27c93f20;
+  color: #27c93f;
+}
+
+.jwt-tag.expired {
+  background: #ff5f5720;
+  color: #ff5f57;
+}
+
+.jwt-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.jwt-pre {
+  background: #000;
+  color: #fff;
+  padding: 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 11px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── Security Auditor ─────────────────────────────────────────────────────── */
+.audit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.audit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: var(--input-bg);
+}
+
+.audit-good {
+  border-left: 3px solid #27c93f;
+}
+
+.audit-warn {
+  border-left: 3px solid #ffbd2e;
+}
+
+.audit-bad {
+  border-left: 3px solid #ff5f57;
+}
+
+.audit-header-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audit-name {
+  font-weight: 600;
+}
+
+.audit-value {
+  font-family: monospace;
+  font-size: 11px;
+  color: #ccc;
+  word-break: break-all;
+  background: #000;
+  padding: 4px;
+  border-radius: 3px;
+}
+
+.audit-msg {
+  font-size: 12px;
+  color: #999;
+}

@@ -89,7 +89,6 @@ ipcMain.handle('network:throttle', async (_e, { webContentsId, ...profile }) => 
             return { ok: false, error: 'WebContents not found' };
         }
 
-        // Use the webview's OWN session — this is what controls its network stack
         const ses = wc.session;
 
         if (profile.offline) {
@@ -102,7 +101,6 @@ ipcMain.handle('network:throttle', async (_e, { webContentsId, ...profile }) => 
                 uploadThroughput: profile.uploadThroughput === -1 ? 0 : profile.uploadThroughput,
             });
         } else {
-            // "No Throttle" — remove all emulation
             ses.disableNetworkEmulation();
         }
 
@@ -113,6 +111,109 @@ ipcMain.handle('network:throttle', async (_e, { webContentsId, ...profile }) => 
         return { ok: false, error: String(err) };
     }
 });
+
+// ── IPC: Phase 2 Features ─────────────────────────────────────────────────────
+
+// Store the last response headers seen per URL (for the Security Auditor).
+const lastHeaders = new Map(); // url → headers object
+
+// ── IPC: JWT Scanner ─────────────────────────────────────────────────────────
+// Executes JS in the active webview to pull all localStorage/sessionStorage
+// values that look like JWTs, then returns them to the renderer.
+ipcMain.handle('jwt:scan', async (_e, webContentsId) => {
+    try {
+        const { webContents } = await import('electron');
+        const wc = webContents.fromId(webContentsId);
+        if (!wc) return { ok: false, tokens: [] };
+
+        const script = `(function() {
+            const JWT_RE = /^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$/;
+            const found = [];
+            const scan = (store, storeName) => {
+                for (let i = 0; i < store.length; i++) {
+                    const key = store.key(i);
+                    const val = store.getItem(key);
+                    if (val && JWT_RE.test(val.trim())) {
+                        found.push({ key, value: val.trim(), store: storeName });
+                    }
+                }
+            };
+            try { scan(localStorage, 'localStorage'); } catch(e) {}
+            try { scan(sessionStorage, 'sessionStorage'); } catch(e) {}
+            // Also check cookies for Bearer tokens
+            document.cookie.split(';').forEach(c => {
+                const [k, v] = c.trim().split('=');
+                if (v && JWT_RE.test(v.trim())) found.push({ key: k, value: v.trim(), store: 'cookie' });
+            });
+            return found;
+        })()`;
+
+        const tokens = await wc.executeJavaScript(script);
+        return { ok: true, tokens };
+    } catch (err) {
+        return { ok: false, error: String(err), tokens: [] };
+    }
+});
+
+// ── IPC: Webview JS Execute ───────────────────────────────────────────────────
+ipcMain.handle('webview:execute', async (_e, { id, script }) => {
+    try {
+        const { webContents } = await import('electron');
+        const wc = webContents.fromId(id);
+        if (!wc) return;
+        return await wc.executeJavaScript(script);
+    } catch (err) {
+        console.error('[webview:execute] Error:', err);
+        return undefined;
+    }
+});
+
+// ── IPC: Security Headers ─────────────────────────────────────────────────────
+ipcMain.handle('security:headers', (_e, url) => {
+    const headers = lastHeaders.get(url) ?? lastHeaders.get(url?.split('?')[0]) ?? null;
+    return { ok: true, headers };
+});
+
+// ── IPC: Screenshot ───────────────────────────────────────────────────────────
+ipcMain.handle('screenshot:capture', async (_e, webContentsId) => {
+    try {
+        const { webContents, dialog, nativeImage } = await import('electron');
+        const wc = webContents.fromId(webContentsId);
+        if (!wc) return { ok: false, error: 'WebContents not found' };
+
+        const image = await wc.capturePage();
+        const { filePath } = await dialog.showSaveDialog({
+            title: 'Save Screenshot',
+            defaultPath: `screenshot-${Date.now()}.png`,
+            filters: [{ name: 'PNG Image', extensions: ['png'] }],
+        });
+        if (!filePath) return { ok: false, error: 'cancelled' };
+        fs.writeFileSync(filePath, image.toPNG());
+        return { ok: true, filePath };
+    } catch (err) {
+        return { ok: false, error: String(err) };
+    }
+});
+
+// ── IPC: DOM Snapshot Export ─────────────────────────────────────────────────
+ipcMain.handle('snapshot:export', async (_e, { webContentsId, html, url }) => {
+    try {
+        const { dialog } = await import('electron');
+        const { filePath } = await dialog.showSaveDialog({
+            title: 'Save DOM Snapshot',
+            defaultPath: `dom-snapshot-${Date.now()}.html`,
+            filters: [{ name: 'HTML File', extensions: ['html'] }],
+        });
+        if (!filePath) return { ok: false, error: 'cancelled' };
+
+        const meta = `<!-- Snapshot URL: ${url}\n     Captured: ${new Date().toISOString()} -->\n`;
+        fs.writeFileSync(filePath, meta + html, 'utf-8');
+        return { ok: true, filePath };
+    } catch (err) {
+        return { ok: false, error: String(err) };
+    }
+});
+
 ;
 
 // ── Window ────────────────────────────────────────────────────────────────────
@@ -153,6 +254,20 @@ function createWindow() {
     });
 
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        // Store headers for the Security Auditor (flatten multi-value arrays to single string)
+        if (details.url && details.responseHeaders) {
+            const flat = {};
+            for (const [k, v] of Object.entries(details.responseHeaders)) {
+                flat[k.toLowerCase()] = Array.isArray(v) ? v[0] : v;
+            }
+            lastHeaders.set(details.url, flat);
+            lastHeaders.set(details.url.split('?')[0], flat);
+            if (lastHeaders.size > 500) {
+                // Prevent unbounded growth
+                const firstKey = lastHeaders.keys().next().value;
+                lastHeaders.delete(firstKey);
+            }
+        }
         callback({
             responseHeaders: {
                 ...details.responseHeaders,

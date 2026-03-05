@@ -1,4 +1,5 @@
 import { NetworkThrottleMenu } from './NetworkThrottleMenu';
+import { DISTANCE_SCANNER_INJECT, DISTANCE_SCANNER_REMOVE } from '../lib/distanceScanner';
 import type { NetworkProfile } from '../lib/networkProfiles';
 import type { ElectronWebview } from '../App';
 
@@ -17,6 +18,12 @@ interface ToolbarProps {
     setShowHistory: (v: boolean) => void;
     showProxy: boolean;
     setShowProxy: (v: boolean) => void;
+    showJwt: boolean;
+    setShowJwt: (v: boolean) => void;
+    showSecurity: boolean;
+    setShowSecurity: (v: boolean) => void;
+    distanceActive: boolean;
+    setDistanceActive: (v: boolean) => void;
     overlayImage: string | null;
     handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
     clearOverlay: () => void;
@@ -39,6 +46,9 @@ export function Toolbar({
     showRulers, setShowRulers,
     showHistory, setShowHistory,
     showProxy, setShowProxy,
+    showJwt, setShowJwt,
+    showSecurity, setShowSecurity,
+    distanceActive, setDistanceActive,
     overlayImage, handleImageUpload, clearOverlay,
     overlayOpacity, setOverlayOpacity,
     handleNavigate,
@@ -76,6 +86,88 @@ export function Toolbar({
         }
     };
 
+    const handleScreenshot = async () => {
+        const wvEl = wv();
+        if (!wvEl) return alert('No active tab to capture');
+        const id = typeof wvEl.getWebContentsId === 'function' ? wvEl.getWebContentsId() : undefined;
+        if (id === undefined) return;
+        const res = await electronBridge?.ipcRenderer?.invoke('screenshot:capture', id) as { ok: boolean, error?: string, filePath?: string } | undefined;
+        if (res?.ok) console.log('Saved to', res.filePath);
+        else alert('Screenshot failed: ' + res?.error);
+    };
+
+    const handleSnapshot = async () => {
+        const wvEl = wv();
+        if (!wvEl) return alert('No active tab to snapshot');
+        const id = typeof wvEl.getWebContentsId === 'function' ? wvEl.getWebContentsId() : undefined;
+        if (id === undefined) return;
+        try {
+            const html = await electronBridge?.ipcRenderer?.invoke('webview:execute', { id, script: 'document.documentElement.outerHTML' }) as string | undefined;
+            const url = await electronBridge?.ipcRenderer?.invoke('webview:execute', { id, script: 'location.href' }) as string | undefined;
+            if (!html) return alert('Failed to get HTML');
+
+            const res = await electronBridge?.ipcRenderer?.invoke('snapshot:export', { webContentsId: id, html, url }) as { ok: boolean, error?: string, filePath?: string } | undefined;
+            if (res?.ok) console.log('Saved snapshot to', res.filePath);
+            else alert('Snapshot failed: ' + res?.error);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const injectCss = async (css: string) => {
+        const wvEl = wv();
+        if (wvEl && typeof wvEl.insertCSS === 'function') await wvEl.insertCSS(css);
+    };
+
+    const toggleXray = async () => {
+        const active = !wireframeMode;
+        toggleWireframe();
+        if (active) {
+            await injectCss(`
+                .__dev_xray_flex { outline: 2px solid #3b82f6 !important; background: rgba(59, 130, 246, 0.1) !important; }
+                .__dev_xray_grid { outline: 2px solid #8b5cf6 !important; background: rgba(139, 92, 246, 0.1) !important; }
+            `);
+            const wvEl = wv();
+            if (!wvEl) return;
+            const id = typeof wvEl.getWebContentsId === 'function' ? wvEl.getWebContentsId() : undefined;
+            if (id !== undefined) {
+                await electronBridge?.ipcRenderer?.invoke('webview:execute', {
+                    id, script: `
+                    document.querySelectorAll('*').forEach(el => {
+                        const d = getComputedStyle(el).display;
+                        if (d === 'flex' || d === 'inline-flex') el.classList.add('__dev_xray_flex');
+                        if (d === 'grid' || d === 'inline-grid') el.classList.add('__dev_xray_grid');
+                    });
+                ` });
+            }
+        } else {
+            const wvEl = wv();
+            if (!wvEl) return;
+            const id = typeof wvEl.getWebContentsId === 'function' ? wvEl.getWebContentsId() : undefined;
+            if (id !== undefined) {
+                await electronBridge?.ipcRenderer?.invoke('webview:execute', {
+                    id, script: `
+                    document.querySelectorAll('.__dev_xray_flex').forEach(el => el.classList.remove('__dev_xray_flex'));
+                    document.querySelectorAll('.__dev_xray_grid').forEach(el => el.classList.remove('__dev_xray_grid'));
+                ` });
+            }
+        }
+    };
+
+    const handleDistanceScan = async () => {
+        const active = !distanceActive;
+        setDistanceActive(active);
+        const wvEl = wv();
+        if (!wvEl) return;
+        const id = typeof wvEl.getWebContentsId === 'function' ? wvEl.getWebContentsId() : undefined;
+        if (id === undefined) return;
+
+        await electronBridge?.ipcRenderer?.invoke('webview:execute', {
+            id,
+            script: active ? DISTANCE_SCANNER_INJECT : DISTANCE_SCANNER_REMOVE
+        });
+    };
+
     return (
         <div className="toolbar">
             <div className="nav-buttons">
@@ -111,7 +203,17 @@ export function Toolbar({
                     title="HTTP Proxy Inspector"
                 >🔀</button>
 
-                <button className={`icon-btn toggle-btn ${wireframeMode ? 'active' : ''}`} onClick={toggleWireframe} title="Wireframe Mode">🕸️</button>
+                <div className="toolbar-divider" />
+
+                <button className={`icon-btn toggle-btn ${showJwt ? 'active' : ''}`} onClick={() => setShowJwt(!showJwt)} title="JWT Decoder">🔑</button>
+                <button className={`icon-btn toggle-btn ${showSecurity ? 'active' : ''}`} onClick={() => setShowSecurity(!showSecurity)} title="Security Auditor">🛡️</button>
+                <button className="icon-btn" onClick={handleScreenshot} title="Capture Screenshot">📷</button>
+                <button className={`icon-btn toggle-btn ${wireframeMode ? 'active' : ''}`} onClick={toggleXray} title="Flex/Grid X-Ray">🧮</button>
+                <button className={`icon-btn toggle-btn ${distanceActive ? 'active' : ''}`} onClick={handleDistanceScan} title="Element Distance Scanner">📐</button>
+                <button className="icon-btn" onClick={handleSnapshot} title="Export DOM Snapshot">📦</button>
+
+                <div className="toolbar-divider" />
+
                 <button className={`icon-btn toggle-btn ${showRulers ? 'active' : ''}`} onClick={() => setShowRulers(!showRulers)} title="Rulers">📏</button>
                 <button className={`icon-btn toggle-btn ${splitView ? 'active' : ''}`} onClick={() => setSplitView(!splitView)} title="Mobile Split View">⊞</button>
 

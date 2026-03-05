@@ -83,7 +83,7 @@ export function ProxyPanel() {
                             value={logSearch}
                             onChange={e => setLogSearch(e.target.value)}
                         />
-                        <button className="danger-btn xs-btn" onClick={clearLog}>🗑 Clear</button>
+                        <button className="danger-btn " onClick={clearLog}>🗑 Clear</button>
                     </div>
                     <div className="proxy-log-table">
                         <div className="proxy-log-header">
