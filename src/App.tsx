@@ -12,6 +12,11 @@ import { useTabs } from './hooks/useTabs';
 import { useHistory } from './hooks/useHistory';
 import { DEFAULT_PROFILE, type NetworkProfile } from './lib/networkProfiles';
 
+import * as pdfjsLib from 'pdfjs-dist';
+// Explicitly import the worker path for Vite
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.js?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace JSX {
@@ -97,9 +102,34 @@ function App() {
     }
   }, [activeTabId, updateTab, addEntry]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setOverlayImage(URL.createObjectURL(file));
+    if (!file) return;
+
+    if (file.type === 'application/pdf') {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 2.0 }); // 2x scale for sharpness
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await page.render({ canvasContext: context, viewport } as any).promise;
+        setOverlayImage(canvas.toDataURL('image/png'));
+      } catch (err) {
+        console.error('Error parsing PDF overlay:', err);
+        alert('Failed to load PDF overlay');
+      }
+    } else {
+      setOverlayImage(URL.createObjectURL(file));
+    }
   };
 
   const clearOverlay = () => setOverlayImage(null);

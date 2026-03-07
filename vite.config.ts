@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: './',
   plugins: [react()],
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

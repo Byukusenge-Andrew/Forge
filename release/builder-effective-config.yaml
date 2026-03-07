@@ -3,6 +3,7 @@ directories:
   buildResources: build
 appId: com.devbrowser.app
 productName: DevBrowser
+compression: store
 files:
   - filter:
       - dist/**/*

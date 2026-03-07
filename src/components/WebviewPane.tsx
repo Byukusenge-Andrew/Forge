@@ -114,10 +114,9 @@ export function WebviewPane({
                     allowpopups
                 />
                 {!isMobile && overlayImage && overlayOpacity !== undefined && (
-                    <div
-                        className="design-overlay"
-                        style={{ backgroundImage: `url(${overlayImage})`, opacity: overlayOpacity }}
-                    />
+                    <div className="design-overlay" style={{ opacity: overlayOpacity, pointerEvents: overlayOpacity > 0 ? 'auto' : 'none' }}>
+                        <img src={overlayImage} alt="PDF Design Overlay" className="design-overlay-img" />
+                    </div>
                 )}
             </div>
         </div>

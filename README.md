@@ -109,6 +109,37 @@ sidecars/
 - Horizontal and vertical pixel rulers drawn with CSS along the content area edges
 - Tick marks every 100px with numeric labels
 
+### 🔌 Integrated Go Proxy (Sidecar)
+- High-performance HTTP HTTP/MITM proxy running silently on port 8877.
+- **Log Tab**: Streams real-time HTTP requests/responses via SSE directly into the DevBrowser React UI.
+- **Intercept Tab**: Pause requests, rewrite JSON bodies, adjust outgoing headers, and drop connections on the fly.
+- **Rate Limit Tab**: Simulate connection pooling limits and artificial latency at the packet level.
+- **Fuzzer Tab**: Randomly inject faulty data or drop packets based on a percentage slider to test frontend resilience.
+
+### 🔑 JWT Decoder
+- Injects an extraction script into the active page to scrape LocalStorage, SessionStorage, and Document Cookies.
+- Parses anything matching the standard `xxxxx.yyyyy.zzzzz` pattern.
+- Decodes the header, verifies the signature structure, and cleanly formats the JWT payload.
+- Automatically flags tokens that surpass their `exp` claim as Exired (Red) or Valid (Green).
+
+### 🛡️ Security Header Auditor
+- Hooks directly into Electron's `onHeadersReceived` event pipeline to capture raw response headers.
+- Analyzes and grades the presence of security-critical directives (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, CORS).
+- Flags missing headers or weak configurations (e.g. `'unsafe-eval'` in CSP) with visual warnings and remediation advice.
+
+### 🧮 Layout X-Ray
+- Development tool to instantly find layout containers.
+- Injects CSS to strongly outline all `display: flex` elements in blue and `display: grid` elements in purple.
+
+### 📐 Distance Scanner
+- Visual margin and padding inspector.
+- Injects an overlay into the webview. Hovering any element draws measurement guides and calculates the exact pixel distances between the bounding client rect of the target and the actual viewport edges.
+
+### 📦 DOM Snapshot Export
+- Instantly capture the live generated DOM state.
+- Extracts `document.documentElement.outerHTML` (capturing all mutations handled by JavaScript frameworks after initial load).
+- Wraps the DOM tree with viewport/timestamp metadata and triggers a native OS save dialog to export as an offline `.html` file.
+
 ### 🔍 Per-Pane DevTools
 - Each `WebviewPane` has an **Inspect** button that calls `webview.openDevTools()` via a React ref scoped to that specific pane
 - Desktop and mobile panes get independent DevTools windows

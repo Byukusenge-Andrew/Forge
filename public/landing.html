@@ -249,7 +249,8 @@
                     <li>Click the <strong>🖼️</strong> button in the toolbar to open a file picker.</li>
                     <li>Select any image file (PNG, JPEG, WebP, SVG).</li>
                     <li>The image is sized to fill the primary webview as an absolute overlay layer with
-                        <code>pointer-events: none</code> — so clicks still pass through to the real page.</li>
+                        <code>pointer-events: none</code> — so clicks still pass through to the real page.
+                    </li>
                     <li>Drag the <strong>opacity slider</strong> that appears to blend between 0% (only the site) and
                         100% (only the mockup).</li>
                 </ol>
@@ -270,7 +271,8 @@
                     <li>The browser injects a CSS stylesheet directly into the webview using Electron's
                         <code>webview.insertCSS()</code> API, which applies
                         <code>outline: 1px solid red !important</code> and removes all background colors from every
-                        element.</li>
+                        element.
+                    </li>
                     <li>This affects every element in the DOM tree — divs, images, buttons, inputs — all at once.</li>
                     <li>Click <strong>🕸️</strong> again to disable it. The page reloads to cleanly restore original
                         styles.</li>
@@ -311,7 +313,8 @@
                 <ol>
                     <li>Each pane header contains a small <strong>🔍</strong> button.</li>
                     <li>Clicking it calls <code>webview.openDevTools()</code> via a ref directly on that pane's
-                        <code>&lt;webview&gt;</code> element.</li>
+                        <code>&lt;webview&gt;</code> element.
+                    </li>
                     <li>A full Chrome DevTools window opens, scoped entirely to that webview's web contents — including
                         its own Console, Network panel, and Elements tree.</li>
                     <li>You can have DevTools open for both the desktop and mobile pane at the same time.</li>
@@ -332,10 +335,12 @@
                     <li>Use the <strong>⚡ / 🐢 / 🚫</strong> dropdown in the toolbar to select a profile.</li>
                     <li>Profiles include: No Throttle, Fast 4G, Slow 4G, Fast 3G, Slow 3G, and Offline.</li>
                     <li>Each profile defines a <code>downloadThroughput</code>, <code>uploadThroughput</code>, and
-                        <code>latency</code> value (in bytes/s and ms).</li>
+                        <code>latency</code> value (in bytes/s and ms).
+                    </li>
                     <li>The selection is sent via Electron's IPC bridge to the main process, which applies
                         <code>Network.emulateNetworkConditions</code> through the Chrome DevTools Protocol to the active
-                        webview.</li>
+                        webview.
+                    </li>
                 </ol>
             </div>
         </div>
@@ -351,15 +356,118 @@
                 <div class="how-it-works-title">How it works</div>
                 <ol>
                     <li>The primary webview element is accessed via a React <code>ref</code> that is passed from
-                        <code>App.tsx</code> into the <code>Toolbar</code> component.</li>
+                        <code>App.tsx</code> into the <code>Toolbar</code> component.
+                    </li>
                     <li><strong>«</strong> calls <code>webview.goBack()</code>, <strong>»</strong> calls
                         <code>webview.goForward()</code>, and <strong>↻</strong> calls <code>webview.reload()</code> on
-                        the Electron WebviewTag API.</li>
+                        the Electron WebviewTag API.
+                    </li>
                     <li>Typing a URL and pressing <kbd class="kbd">Enter</kbd> updates the React state, which flows as a
                         new <code>src</code> prop to the webview — React's declarative model handles the navigation.
                     </li>
                     <li>Switching tabs reinitializes the webview's <code>src</code> by keying the component on
-                        <code>activeTabId</code>, ensuring each tab loads the correct URL independently.</li>
+                        <code>activeTabId</code>, ensuring each tab loads the correct URL independently.
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Go HTTP Proxy -->
+        <div class="card">
+            <span class="card-icon">🔌</span>
+            <div class="card-title">Integrated Go Proxy</div>
+            <p class="card-desc">A high-performance HTTP MITM proxy sidecar written in Go. View raw request/response
+                logs, intercept and rewrite traffic on the fly, and apply advanced rate-limiting rules directly from the
+                browser UI.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Click <strong>🔀</strong> to open the Proxy Panel.</li>
+                    <li>The Go sidecar runs silently on port 8877, intercepting all HTTP traffic scoped to the webview
+                        session.</li>
+                    <li>Use the <strong>Log</strong> tab to stream SSE traffic, or the <strong>Intercept</strong> tab to
+                        modify bodies before they hit the browser.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- JWT Decoder -->
+        <div class="card">
+            <span class="card-icon">🔑</span>
+            <div class="card-title">JWT Decoder</div>
+            <p class="card-desc">Instantly scan the active page's Local Storage, Session Storage, and Cookies for JWT
+                tokens. Decode their headers and payloads in a clean side panel to verify claims and expirations without
+                external tools.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Click <strong>🔑</strong> to open the JWT panel.</li>
+                    <li>Click <strong>Scan Page</strong>. The browser injects an extraction script and returns matched
+                        tokens.</li>
+                    <li>Select a token to view the decoded JSON payload and a color-coded expiration badge.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Security Auditor -->
+        <div class="card">
+            <span class="card-icon">🛡️</span>
+            <div class="card-title">Security Header Auditor</div>
+            <p class="card-desc">Automatically analyzes the response headers of the current page (CSP, HSTS,
+                X-Frame-Options, CORS) and flags missing or weak security configurations.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Click <strong>🛡️</strong> to open the Security panel.</li>
+                    <li>Click <strong>Audit Page</strong> to analyze the stored headers from the last page load.</li>
+                    <li>Issues are highlighted with Good (Green), Warning (Yellow), or Bad (Red) indicators alongside
+                        remediation advice.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Flexbox/Grid X-Ray -->
+        <div class="card">
+            <span class="card-icon">🧮</span>
+            <div class="card-title">Layout X-Ray</div>
+            <p class="card-desc">Instantly highlight all Flexbox and Grid containers on the page to quickly debug
+                complex layout nesting and alignment issues.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Click <strong>🧮</strong> to toggle X-Ray mode.</li>
+                    <li>Flex containers are highlighted in blue. Grid containers are highlighted in purple.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Element Distance Scanner -->
+        <div class="card">
+            <span class="card-icon">📐</span>
+            <div class="card-title">Distance Scanner</div>
+            <p class="card-desc">Hover over any element on the page to instantly view its exact pixel distances to the
+                viewport edges, making margin and padding verification effortless.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Click <strong>📐</strong> to activate the scanner.</li>
+                    <li>Move your mouse around the webview to draw live distance guides.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- DOM Snapshot Export -->
+        <div class="card">
+            <span class="card-icon">📦</span>
+            <div class="card-title">DOM Snapshot Export</div>
+            <p class="card-desc">Serialize the current state of the DOM (including any JavaScript mutations) and save it
+                as an offline HTML file for later inspection or sharing.</p>
+            <div class="how-it-works">
+                <div class="how-it-works-title">How it works</div>
+                <ol>
+                    <li>Click <strong>📦</strong> to trigger an export.</li>
+                    <li>Choose a save location. The resulting HTML file contains the exact DOM state at that moment.
+                    </li>
                 </ol>
             </div>
         </div>

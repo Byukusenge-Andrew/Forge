@@ -328,14 +328,31 @@ webview {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
+  right: 17px;
+  /* Leave space for the webview's native scrollbar */
   bottom: 0;
-  pointer-events: none;
-  /* Passes clicks to the webview behind it */
-  background-size: 100% auto;
-  background-position: top center;
-  background-repeat: no-repeat;
+  overflow-y: auto;
+  overflow-x: hidden;
   z-index: 100;
+  /* Allow scrolling the overlay by default */
+  pointer-events: auto;
+}
+
+/* Custom overlay scrollbar styling */
+.design-overlay::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.design-overlay::-webkit-scrollbar-thumb {
+  background: rgba(255, 0, 170, 0.4);
+  border-radius: 4px;
+}
+
+.design-overlay-img {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
 .dev-tools-controls {

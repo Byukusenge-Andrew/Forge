@@ -220,7 +220,7 @@ export function Toolbar({
                 <div className="overlay-controls">
                     <label className="icon-btn toggle-btn" title="Upload Overlay" style={{ cursor: 'pointer', width: 'auto', padding: '0 6px', fontSize: '11px' }}>
                         🖼️
-                        <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                        <input type="file" accept="image/*,application/pdf" onChange={handleImageUpload} style={{ display: 'none' }} />
                     </label>
                     {overlayImage && (
                         <>

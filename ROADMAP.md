@@ -124,3 +124,6 @@ app.on('window-all-closed', () => {
 | Visual diffing | – | – | ✅ OpenCV | – |
 | High-freq WebSocket inspection | – | ✅ | – | ✅ best |
 | Native OS / hardware (Serial, BLE) | – | – | – | ✅ |
+
+
+## If you have more ideas feel free to contribute

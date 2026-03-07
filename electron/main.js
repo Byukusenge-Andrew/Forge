@@ -5,8 +5,7 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import http from 'http';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// __dirname is not reliable in ESM ASAR, using app.getAppPath() where needed
 
 // ── JSON-based History (no native modules required) ───────────────────────────
 // History is stored as an array of entry objects, newest-first, in history.json.
@@ -230,7 +229,9 @@ function createWindow() {
         width: 1400,
         height: 900,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            sandbox: true,
+            nodeIntegration: false,
+            preload: path.join(app.getAppPath(), 'electron', 'preload.js'),
             webviewTag: true,
             contextIsolation: true,
         }
@@ -239,17 +240,21 @@ function createWindow() {
     if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
         mainWindow.loadURL('http://localhost:5173');
     } else {
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+        mainWindow.loadURL('app://landing.html');
     }
 
     // Register the app:// protocol handler (must happen after session is available)
     // Maps app://filename => <projectRoot>/public/filename
     const publicDir = app.isPackaged
         ? path.join(process.resourcesPath, 'public')
-        : path.join(__dirname, '../public');
+        : path.join(app.getAppPath(), 'public');
 
     session.defaultSession.protocol.registerFileProtocol('app', (request, callback) => {
-        const filePath = path.join(publicDir, new URL(request.url).pathname);
+        let requestUrl = new URL(request.url).pathname;
+        if (requestUrl.startsWith('//localhost/')) {
+            requestUrl = requestUrl.slice('//localhost'.length);
+        }
+        const filePath = path.join(publicDir, requestUrl);
         callback({ path: filePath });
     });
 
@@ -268,12 +273,17 @@ function createWindow() {
                 lastHeaders.delete(firstKey);
             }
         }
-        callback({
-            responseHeaders: {
+
+        // Only override CSP with highly permissive rules for our own React UI / Dev Server.
+        // Third-party webviews should enforce their own CSP for security auditing and accuracy.
+        let cspHeaders = details.responseHeaders;
+        if (details.url.startsWith('app://') || details.url.startsWith('http://localhost:5173')) {
+            cspHeaders = {
                 ...details.responseHeaders,
                 'Content-Security-Policy': ["default-src * 'unsafe-inline' 'unsafe-eval' data: blob:"]
-            }
-        });
+            };
+        }
+        callback({ responseHeaders: cspHeaders });
     });
 }
 
@@ -285,7 +295,7 @@ function startGoProxy() {
     const binaryName = process.platform === 'win32' ? 'devproxy.exe' : 'devproxy';
     const binaryPath = app.isPackaged
         ? path.join(process.resourcesPath, 'sidecars', binaryName)
-        : path.join(__dirname, '../sidecars', binaryName);
+        : path.join(app.getAppPath(), 'sidecars', binaryName);
 
     if (!fs.existsSync(binaryPath)) {
         console.warn('[proxy] devproxy binary not found at:', binaryPath);
@@ -334,8 +344,41 @@ app.whenReady().then(async () => {
     });
 
     createWindow();
+
+    // Security: Automatically deny all unexpected permissions like camera/mic in background webviews
+    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+        console.warn(`[Security] Denied ${permission} permission request from ${webContents.getURL()}`);
+        callback(false);
+    });
+
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+});
+
+app.on('web-contents-created', (event, contents) => {
+    // Prevent generic popups and new windows opening arbitrarily 
+    contents.setWindowOpenHandler(({ url }) => {
+        console.warn(`[Security] Blocked window open for: ${url}`);
+        return { action: 'deny' };
+    });
+
+    // Prevent top-level navigations from traversing into local files
+    contents.on('will-navigate', (event, navigationUrl) => {
+        const parsedUrl = new URL(navigationUrl);
+        if (parsedUrl.protocol === 'file:') {
+            console.warn(`[Security] Blocked file:// navigation: ${navigationUrl}`);
+            event.preventDefault();
+        }
+    });
+
+    // Ensure strict webview sandboxing
+    contents.on('will-attach-webview', (event, webPreferences) => {
+        webPreferences.nodeIntegration = false;
+        webPreferences.nodeIntegrationInWorker = false;
+        webPreferences.nodeIntegrationInSubFrames = false;
+        // Strip out preload scripts if any ever tried to leak in
+        delete webPreferences.preload;
     });
 });
 
