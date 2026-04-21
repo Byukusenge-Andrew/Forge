@@ -5,6 +5,21 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import http from 'http';
 
+// ── Ad Blocker Domains ────────────────────────────────────────────────────────
+const AD_DOMAINS = [
+    'doubleclick.net', 'googlesyndication.com', 'google-analytics.com', 'adnxs.com',
+    'quantserve.com', 'scorecardresearch.com', 'exponential.com', 'advertising.com',
+    'amazon-adsystem.com', 'adbrn.com', 'adform.net', 'adroll.com', 'adsrvr.org',
+    'adtech.de', 'adtheta.com', 'taboola.com', 'outbrain.com', 'mgid.com',
+    'revcontent.com', 'popads.net', 'popcash.net', 'yandex.ru', 'openx.net',
+    'pubmatic.com', 'rubiconproject.com', 'yieldmo.com', 'moatads.com',
+    'lijit.com', 'bidswitch.net', 'casalemedia.com', 'criteo.com',
+    'indexww.com', 'smartadserver.com', 'sovrn.com', 'teads.tv',
+    'triplelift.com',
+];
+
+let adBlockEnabled = false;
+
 // __dirname is not reliable in ESM ASAR, using app.getAppPath() where needed
 
 // ── JSON-based History (no native modules required) ───────────────────────────
@@ -109,6 +124,13 @@ ipcMain.handle('network:throttle', async (_e, { webContentsId, ...profile }) => 
         console.error('[throttle] error:', err);
         return { ok: false, error: String(err) };
     }
+});
+
+// ── IPC: Ad Blocker ───────────────────────────────────────────────────────────
+ipcMain.handle('adblock:toggle', (_e, enabled) => {
+    adBlockEnabled = enabled;
+    console.log(`[adblock] status: ${adBlockEnabled ? 'ENABLED' : 'DISABLED'}`);
+    return { ok: true, enabled: adBlockEnabled };
 });
 
 // ── IPC: Phase 2 Features ─────────────────────────────────────────────────────
@@ -240,7 +262,7 @@ function createWindow() {
     if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
         mainWindow.loadURL('http://localhost:5173');
     } else {
-        mainWindow.loadURL('app://landing.html');
+        mainWindow.loadFile(path.join(app.getAppPath(), 'dist/index.html'));
     }
 
     // Register the app:// protocol handler (must happen after session is available)
@@ -353,6 +375,29 @@ app.whenReady().then(async () => {
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+
+    // ── Global Ad Blocker (Network Level) ─────────────────────────────────────
+    session.defaultSession.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (details, callback) => {
+        if (!adBlockEnabled) {
+            callback({});
+            return;
+        }
+
+        try {
+            const url = new URL(details.url);
+            const hostname = url.hostname.toLowerCase();
+            const isAd = AD_DOMAINS.some(domain => hostname === domain || hostname.endsWith('.' + domain));
+
+            if (isAd) {
+                console.log(`[adblock] Blocked: ${details.url}`);
+                callback({ cancel: true });
+            } else {
+                callback({});
+            }
+        } catch (e) {
+            callback({});
+        }
     });
 });
 

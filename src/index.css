@@ -224,7 +224,7 @@ body {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border-color);
-  background-color: #ffffff;
+  background-color: #1a1a1a;
 }
 
 .webview-container.mobile-view {

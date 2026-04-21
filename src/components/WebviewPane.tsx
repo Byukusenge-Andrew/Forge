@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { DEVICE_PRESETS, DEFAULT_PRESET, type DevicePreset } from '../lib/devicePresets';
 import type { ElectronWebview } from '../App';
+import { LandingScreen } from './LandingScreen';
+import { getCosmeticCSS } from '../lib/adblocker';
 
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
@@ -26,12 +28,13 @@ interface WebviewPaneProps {
     onWebviewMount?: (tabId: string, el: ElectronWebview | null) => void;
     /** Called when the webview navigates to a new page (e.g. user clicks a link) */
     onNavigate?: (url: string, title: string) => void;
+    adBlockEnabled: boolean;
 }
 
 export function WebviewPane({
     tabId, title, url, hidden = false,
     isMobile = false, overlayImage, overlayOpacity,
-    onWebviewMount, onNavigate,
+    onWebviewMount, onNavigate, adBlockEnabled,
 }: WebviewPaneProps) {
     const wvRef = useRef<ElectronWebview | null>(null);
     const [preset, setPreset] = useState<DevicePreset>(DEFAULT_PRESET);
@@ -50,8 +53,23 @@ export function WebviewPane({
             // Remove old listener if re-attaching
             wv.removeEventListener('load-commit', handleNavigationStateChange);
             wv.addEventListener('load-commit', handleNavigationStateChange);
+
+            wv.removeEventListener('dom-ready', injectCosmeticFilters);
+            wv.addEventListener('dom-ready', injectCosmeticFilters);
         }
     };
+
+    const injectCosmeticFilters = async () => {
+        if (adBlockEnabled && wvRef.current && typeof wvRef.current.insertCSS === 'function') {
+            console.log(`[adblock] Injecting cosmetic filters to ${tabId}`);
+            await wvRef.current.insertCSS(getCosmeticCSS());
+        }
+    };
+
+    // Re-apply if toggle changes while page is open
+    useEffect(() => {
+        if (adBlockEnabled) injectCosmeticFilters();
+    }, [adBlockEnabled]);
 
     // Fired when the webview commits to a navigation (link click, redirect, forms)
     interface LoadCommitEvent extends Event {
@@ -108,11 +126,15 @@ export function WebviewPane({
             </div>
 
             <div className={`webview-wrapper ${isMobile ? 'mobile-wrapper' : ''}`} style={mobileWrapperStyle}>
-                <webview
-                    ref={handleRef as unknown as React.RefObject<HTMLElement>}
-                    src={url}
-                    allowpopups
-                />
+                {url === 'about:newtab' ? (
+                    <LandingScreen />
+                ) : (
+                    <webview
+                        ref={handleRef as unknown as React.RefObject<HTMLElement>}
+                        src={url}
+                        allowpopups={true}
+                    />
+                )}
                 {!isMobile && overlayImage && overlayOpacity !== undefined && (
                     <div className="design-overlay" style={{ opacity: overlayOpacity, pointerEvents: overlayOpacity > 0 ? 'auto' : 'none' }}>
                         <img src={overlayImage} alt="PDF Design Overlay" className="design-overlay-img" />

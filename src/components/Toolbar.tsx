@@ -32,6 +32,8 @@ interface ToolbarProps {
     handleNavigate: (e: React.FormEvent) => void;
     networkProfile: NetworkProfile;
     onNetworkChange: (profile: NetworkProfile) => void;
+    adBlockEnabled: boolean;
+    toggleAdBlock: () => void;
 }
 
 const electronBridge = (window as unknown as {
@@ -53,6 +55,7 @@ export function Toolbar({
     overlayOpacity, setOverlayOpacity,
     handleNavigate,
     networkProfile, onNetworkChange,
+    adBlockEnabled, toggleAdBlock,
 }: ToolbarProps) {
     const wv = () => getActiveWebview();
 
@@ -205,7 +208,11 @@ export function Toolbar({
 
                 <div className="toolbar-divider" />
 
-                <button className={`icon-btn toggle-btn ${showJwt ? 'active' : ''}`} onClick={() => setShowJwt(!showJwt)} title="JWT Decoder">🔑</button>
+                <button className={`icon-btn toggle-btn ${adBlockEnabled ? 'active' : ''}`} onClick={toggleAdBlock} title={adBlockEnabled ? 'Ad Blocker: ENABLED' : 'Ad Blocker: DISABLED'}>
+                    {adBlockEnabled ? '🛡️' : '🛡️'} {/* We can use the same icon but toggle active state */}
+                </button>
+
+                <button className={`icon-btn toggle-btn ${showJwt ? 'active' : ''}`} onClick={showJwt ? () => setShowJwt(false) : () => setShowJwt(true)} title="JWT Decoder">🔑</button>
                 <button className={`icon-btn toggle-btn ${showSecurity ? 'active' : ''}`} onClick={() => setShowSecurity(!showSecurity)} title="Security Auditor">🛡️</button>
                 <button className="icon-btn" onClick={handleScreenshot} title="Capture Screenshot">📷</button>
                 <button className={`icon-btn toggle-btn ${wireframeMode ? 'active' : ''}`} onClick={toggleXray} title="Flex/Grid X-Ray">🧮</button>

@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useRef, useCallback, useEffect } from 'react';
 import './index.css';
 import { Toolbar } from './components/Toolbar';
 import { WebviewPane } from './components/WebviewPane';
@@ -43,7 +44,7 @@ function App() {
   const { tabs, activeTab, activeTabId, setActiveTabId, openTab, closeTab, updateTab } = useTabs();
   const { addEntry } = useHistory();
 
-  const [urlInput, setUrlInput] = useState(activeTab.url);
+  const [urlInput, setUrlInput] = useState(activeTab.url === 'about:newtab' ? '' : activeTab.url);
   // splitView is now PER-TAB — stored in tab.splitView, not a global boolean
   const [overlayImage, setOverlayImage] = useState<string | null>(null);
   const [overlayOpacity, setOverlayOpacity] = useState(0.5);
@@ -55,6 +56,7 @@ function App() {
   const [showSecurity, setShowSecurity] = useState(false);
   const [distanceActive, setDistanceActive] = useState(false);
   const [networkProfile, setNetworkProfile] = useState<NetworkProfile>(DEFAULT_PROFILE);
+  const [adBlockEnabled, setAdBlockEnabled] = useState(false);
 
   // Derived from the active tab — each tab has its own split view state
   const splitView = activeTab.splitView ?? false;
@@ -75,7 +77,7 @@ function App() {
   const handleSelectTab = (id: string) => {
     setActiveTabId(id);
     const tab = tabs.find(t => t.id === id);
-    if (tab) setUrlInput(tab.url);
+    if (tab) setUrlInput(tab.url === 'about:newtab' ? '' : tab.url);
   };
 
   const handleNavigate = (e: React.FormEvent) => {
@@ -98,7 +100,7 @@ function App() {
     updateTab(tabId, { url: newUrl, title: newTitle });
     addEntry(newUrl, newTitle);
     if (tabId === activeTabId) {
-      setUrlInput(newUrl);
+      setUrlInput(newUrl === 'about:newtab' ? '' : newUrl);
     }
   }, [activeTabId, updateTab, addEntry]);
 
@@ -156,6 +158,28 @@ function App() {
     setShowHistory(false);
   };
 
+  const toggleAdBlock = async () => {
+    const newState = !adBlockEnabled;
+    setAdBlockEnabled(newState);
+    const bridge = (window as any).electron;
+    if (bridge) {
+      await bridge.ipcRenderer.invoke('adblock:toggle', newState);
+    }
+  };
+
+  useEffect(() => {
+    // Sync initial state if main process has it enabled (e.g. from previous session)
+    const syncStatus = async () => {
+      const bridge = (window as any).electron;
+      if (bridge) {
+        // We assume main process starts with false by default for now,
+        // but we could load from settings here too.
+        await bridge.ipcRenderer.invoke('adblock:toggle', adBlockEnabled);
+      }
+    };
+    syncStatus();
+  }, []);
+
   return (
     <div className="browser-shell">
       <TabBar
@@ -183,6 +207,7 @@ function App() {
         overlayOpacity={overlayOpacity} setOverlayOpacity={setOverlayOpacity}
         handleNavigate={handleNavigate}
         networkProfile={networkProfile} onNetworkChange={setNetworkProfile}
+        adBlockEnabled={adBlockEnabled} toggleAdBlock={toggleAdBlock}
       />
 
       <div className="app-body">
@@ -215,6 +240,7 @@ function App() {
               onNavigate={(u, t) => handleWebviewNavigate(tab.id, u, t)}
               overlayImage={tab.id === activeTabId ? overlayImage : null}
               overlayOpacity={overlayOpacity}
+              adBlockEnabled={adBlockEnabled}
             />
           ))}
 
@@ -227,6 +253,7 @@ function App() {
               url={activeTab.url}
               isMobile={true}
               onWebviewMount={registerWebview}
+              adBlockEnabled={adBlockEnabled}
             />
           )}
         </div>
