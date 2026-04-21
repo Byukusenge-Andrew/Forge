@@ -366,6 +366,14 @@ app.whenReady().then(async () => {
     });
 
     createWindow();
+    
+    // Clean the User-Agent: removes "Electron/X.Y.Z" and "dev-browser/X.Y.Z" to bypass Google's block
+    const originalUA = session.defaultSession.getUserAgent();
+    const cleanUA = originalUA
+        .replace(/Electron\/\d+(\.\d+)+ /g, '')
+        .replace(/dev-browser\/\d+(\.\d+)+ /g, '');
+    session.defaultSession.setUserAgent(cleanUA);
+    console.log('[Security] User-Agent cleaned:', cleanUA);
 
     // Security: Automatically deny all unexpected permissions like camera/mic in background webviews
     session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {

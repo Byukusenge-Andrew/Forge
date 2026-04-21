@@ -31,6 +31,8 @@ interface WebviewPaneProps {
     adBlockEnabled: boolean;
 }
 
+const MOBILE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+
 export function WebviewPane({
     tabId, title, url, hidden = false,
     isMobile = false, overlayImage, overlayOpacity,
@@ -133,6 +135,7 @@ export function WebviewPane({
                         ref={handleRef as unknown as React.RefObject<HTMLElement>}
                         src={url}
                         allowpopups={true}
+                        useragent={isMobile ? MOBILE_UA : undefined}
                     />
                 )}
                 {!isMobile && overlayImage && overlayOpacity !== undefined && (
