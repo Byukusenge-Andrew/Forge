@@ -225,6 +225,7 @@ body {
   flex-direction: column;
   border-right: 1px solid var(--border-color);
   background-color: #1a1a1a;
+  min-height: 0;
 }
 
 .webview-container.mobile-view {
@@ -305,6 +306,8 @@ body {
   flex: 1;
   width: 100%;
   display: flex;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .mobile-wrapper {

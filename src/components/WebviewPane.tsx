@@ -46,7 +46,34 @@ export function WebviewPane({
         return () => onWebviewMount?.(tabId, null);
     }, [tabId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleRef = (el: HTMLElement | null) => {
+    // Fired when the webview commits to a navigation (link click, redirect, forms)
+    interface LoadCommitEvent extends Event {
+        isMainFrame: boolean;
+        url: string;
+    }
+
+    const handleNavigationStateChange = React.useCallback((e: Event) => {
+        const commitEvent = e as LoadCommitEvent;
+        if (commitEvent.isMainFrame && onNavigate && wvRef.current) {
+            const newUrl = commitEvent.url;
+            const newTitle = wvRef.current.getTitle?.() || new URL(newUrl).hostname;
+            onNavigate(newUrl, newTitle);
+        }
+    }, [onNavigate]);
+
+    const injectCosmeticFilters = React.useCallback(async () => {
+        if (adBlockEnabled && wvRef.current && typeof wvRef.current.insertCSS === 'function') {
+            console.log(`[adblock] Injecting cosmetic filters to ${tabId}`);
+            await wvRef.current.insertCSS(getCosmeticCSS());
+        }
+    }, [adBlockEnabled, tabId]);
+
+    // Re-apply if toggle changes while page is open
+    useEffect(() => {
+        if (adBlockEnabled) injectCosmeticFilters();
+    }, [adBlockEnabled, injectCosmeticFilters]);
+
+    const handleRef = React.useCallback((el: HTMLElement | null) => {
         const wv = el as ElectronWebview | null;
         wvRef.current = wv;
         onWebviewMount?.(tabId, wv);
@@ -59,34 +86,7 @@ export function WebviewPane({
             wv.removeEventListener('dom-ready', injectCosmeticFilters);
             wv.addEventListener('dom-ready', injectCosmeticFilters);
         }
-    };
-
-    const injectCosmeticFilters = async () => {
-        if (adBlockEnabled && wvRef.current && typeof wvRef.current.insertCSS === 'function') {
-            console.log(`[adblock] Injecting cosmetic filters to ${tabId}`);
-            await wvRef.current.insertCSS(getCosmeticCSS());
-        }
-    };
-
-    // Re-apply if toggle changes while page is open
-    useEffect(() => {
-        if (adBlockEnabled) injectCosmeticFilters();
-    }, [adBlockEnabled]);
-
-    // Fired when the webview commits to a navigation (link click, redirect, forms)
-    interface LoadCommitEvent extends Event {
-        isMainFrame: boolean;
-        url: string;
-    }
-
-    const handleNavigationStateChange = (e: Event) => {
-        const commitEvent = e as LoadCommitEvent;
-        if (commitEvent.isMainFrame && onNavigate && wvRef.current) {
-            const newUrl = commitEvent.url;
-            const newTitle = wvRef.current.getTitle?.() || new URL(newUrl).hostname;
-            onNavigate(newUrl, newTitle);
-        }
-    };
+    }, [tabId, onWebviewMount, handleNavigationStateChange, injectCosmeticFilters]);
 
     const handleInspect = () => {
         if (wvRef.current && typeof wvRef.current.openDevTools === 'function') {

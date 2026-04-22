@@ -82,11 +82,29 @@ function App() {
 
   const handleNavigate = (e: React.FormEvent) => {
     e.preventDefault();
-    let finalUrl = urlInput;
-    if (!/^https?:\/\//i.test(finalUrl)) finalUrl = 'https://' + finalUrl;
+    const input = urlInput.trim();
+    if (!input) return;
+
+    let finalUrl = input;
+    const hasProtocol = /^https?:\/\//i.test(input);
+    const hasSpaces = input.includes(' ');
+    const hasDot = input.includes('.');
+    const isLocalhost = input.split(':')[0] === 'localhost';
+
+    // If it doesn't look like a URL, treat it as a Google search
+    const isSearch = !hasProtocol && (hasSpaces || (!hasDot && !isLocalhost));
+
+    if (isSearch) {
+      finalUrl = `https://www.google.com/search?q=${encodeURIComponent(input)}`;
+    } else if (!hasProtocol) {
+      finalUrl = 'https://' + finalUrl;
+    }
+
     setUrlInput(finalUrl);
+
     try {
-      const hostname = new URL(finalUrl).hostname;
+      const urlObj = new URL(finalUrl);
+      const hostname = urlObj.hostname;
       updateTab(activeTabId, { url: finalUrl, title: hostname });
       addEntry(finalUrl, hostname);
     } catch {
@@ -97,12 +115,25 @@ function App() {
 
   // Called when a user clicks a link inside the webview itself
   const handleWebviewNavigate = useCallback((tabId: string, newUrl: string, newTitle: string) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    // Normalize URLs for comparison (ignore trailing slashes)
+    const normalize = (u: string) => u.replace(/\/$/, '');
+    if (normalize(tab.url) === normalize(newUrl)) {
+      // Still update title if it's different, but keep the current URL to avoid re-triggering src
+      if (tab.title !== newTitle) {
+        updateTab(tabId, { title: newTitle });
+      }
+      return;
+    }
+
     updateTab(tabId, { url: newUrl, title: newTitle });
     addEntry(newUrl, newTitle);
     if (tabId === activeTabId) {
       setUrlInput(newUrl === 'about:newtab' ? '' : newUrl);
     }
-  }, [activeTabId, updateTab, addEntry]);
+  }, [activeTabId, updateTab, addEntry, tabs]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -122,7 +153,6 @@ function App() {
         canvas.height = viewport.height;
         canvas.width = viewport.width;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await page.render({ canvasContext: context, viewport } as any).promise;
         setOverlayImage(canvas.toDataURL('image/png'));
       } catch (err) {
@@ -178,7 +208,7 @@ function App() {
       }
     };
     syncStatus();
-  }, []);
+  }, [adBlockEnabled]);
 
   return (
     <div className="browser-shell">

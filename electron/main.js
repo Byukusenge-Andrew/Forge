@@ -256,6 +256,7 @@ function createWindow() {
             preload: path.join(app.getAppPath(), 'electron', 'preload.js'),
             webviewTag: true,
             contextIsolation: true,
+            
         }
     });
 
