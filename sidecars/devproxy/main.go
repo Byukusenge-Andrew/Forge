@@ -22,7 +22,7 @@ func main() {
 	// Initialise shared state
 	reqLog := NewRequestLog()
 	interceptor := NewInterceptor()
-	rateLimiter := NewRateLimiter2()
+	rateLimiter := NewRateLimiter()
 	fuzzer := NewFuzzer()
 
 	// Single mux handles both proxy requests and /api/* control routes

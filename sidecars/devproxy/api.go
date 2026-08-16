@@ -159,11 +159,10 @@ func registerAPI(mux *http.ServeMux, log *RequestLog, interceptor *Interceptor, 
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			rule.ID = fmt.Sprintf("%d", r.Context().Value("ts"))
-			if rule.ID == "%!d(<nil>)" {
+			if rule.ID == "" {
 				rule.ID = newID()
 			}
-			if rule.StatusCode == 0 {
+			if rule.StatusCode == 0 && rule.DelayMs == 0 {
 				rule.StatusCode = http.StatusTooManyRequests
 			}
 			rateLimiter.Add(&rule)

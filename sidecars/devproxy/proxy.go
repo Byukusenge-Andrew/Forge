@@ -81,13 +81,21 @@ func (p *Proxy) handleHTTP(w http.ResponseWriter, r *http.Request) {
 	reqID := newID()
 	rawURL := r.URL.String()
 
-	// Apply rate limit rules first
-	if p.rateLimiter.Apply(w, rawURL) {
+	// Apply rate limit / throttling rules first
+	if handled, rule := p.rateLimiter.Apply(w, rawURL); handled {
+		status := http.StatusTooManyRequests
+		delay := int64(0)
+		if rule != nil {
+			status = rule.StatusCode
+			delay = int64(rule.DelayMs)
+		}
 		p.log.Add(&LogEntry{
-			ID:        reqID,
-			Method:    r.Method,
-			URL:       rawURL,
-			Timestamp: time.Now(),
+			ID:         reqID,
+			Method:     r.Method,
+			URL:        rawURL,
+			StatusCode: status,
+			DurationMs: delay,
+			Timestamp:  time.Now(),
 		})
 		return
 	}

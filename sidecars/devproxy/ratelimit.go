@@ -1,5 +1,5 @@
-// ratelimit.go — Force specific URLs to return error responses.
-// Rules are matched using simple substring matching against the full request URL.
+// ratelimit.go — Force specific URLs to return error responses or inject latency.
+// Rules are matched using case-insensitive substring matching against the full request URL.
 package main
 
 import (
@@ -9,7 +9,8 @@ import (
 	"time"
 )
 
-// RateLimitRule forces a URL pattern to return a specific HTTP status after a delay.
+// RateLimitRule forces a URL pattern to return a specific HTTP status after a delay,
+// or adds artificial latency/throttling when StatusCode is 200 or 0.
 type RateLimitRule struct {
 	ID         string `json:"id"`
 	Pattern    string `json:"pattern"`
@@ -17,17 +18,13 @@ type RateLimitRule struct {
 	DelayMs    int    `json:"delayMs"`
 }
 
-// RateLimiter manages forced-error rules.
+// RateLimiter manages forced-error and throttling rules.
 type RateLimiter struct {
 	mu    sync.RWMutex
 	rules map[string]*RateLimitRule
 }
 
 func NewRateLimiter() *RateLimiter {
-	return &RateLimiter{rules: make(map[string]*RateLimitRule)}
-}
-
-func NewRateLimiter2() *RateLimiter {
 	return &RateLimiter{rules: make(map[string]*RateLimitRule)}
 }
 
@@ -60,23 +57,31 @@ func (rl *RateLimiter) All() []*RateLimitRule {
 func (rl *RateLimiter) Match(rawURL string) *RateLimitRule {
 	rl.mu.RLock()
 	defer rl.mu.RUnlock()
+	lowerURL := strings.ToLower(rawURL)
 	for _, r := range rl.rules {
-		if strings.Contains(rawURL, r.Pattern) {
+		if strings.Contains(lowerURL, strings.ToLower(r.Pattern)) {
 			return r
 		}
 	}
 	return nil
 }
 
-// Apply sleeps if needed and writes the forced response. Returns true if a rule matched.
-func (rl *RateLimiter) Apply(w http.ResponseWriter, rawURL string) bool {
+// Apply sleeps if needed. If the rule specifies an error status (>= 400),
+// it writes the forced HTTP error response and returns (true, rule).
+// If the rule is delay-only (< 400 or 0), it sleeps and returns (false, rule),
+// allowing the proxy to forward the request with the injected latency.
+func (rl *RateLimiter) Apply(w http.ResponseWriter, rawURL string) (bool, *RateLimitRule) {
 	rule := rl.Match(rawURL)
 	if rule == nil {
-		return false
+		return false, nil
 	}
 	if rule.DelayMs > 0 {
 		time.Sleep(time.Duration(rule.DelayMs) * time.Millisecond)
 	}
-	http.Error(w, http.StatusText(rule.StatusCode), rule.StatusCode)
-	return true
+	if rule.StatusCode >= 400 {
+		http.Error(w, http.StatusText(rule.StatusCode), rule.StatusCode)
+		return true, rule
+	}
+	return false, rule
 }
+

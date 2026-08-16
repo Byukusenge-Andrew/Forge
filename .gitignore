@@ -25,3 +25,4 @@ dist-ssr
 
 release/
 DevBrowser_Installer.exe
+sidecars/devproxy/devproxy.exe

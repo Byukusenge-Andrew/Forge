@@ -170,9 +170,11 @@ export function ProxyPanel() {
                             onChange={e => setRlPattern(e.target.value)}
                         />
                         <select value={rlStatus} onChange={e => setRlStatus(Number(e.target.value))} className="rl-select">
+                            <option value={200}>200 OK (Throttle / Latency Only)</option>
                             <option value={429}>429 Too Many Requests</option>
                             <option value={500}>500 Internal Server Error</option>
                             <option value={503}>503 Service Unavailable</option>
+                            <option value={504}>504 Gateway Timeout</option>
                             <option value={403}>403 Forbidden</option>
                         </select>
                         <input
