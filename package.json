@@ -1,19 +1,30 @@
 {
   "name": "dev-browser",
   "private": true,
-  "version": "0.0.0",
-  "description": "DevBrowser App",
-  "author": "dev-browser",
+  "version": "1.0.0",
+  "description": "A developer-focused web browser with integrated Go proxy sidecar, network throttling, security auditing, and payload fuzzing",
+  "author": "Byukusenge Andrew",
+  "license": "MIT",
+  "keywords": [
+    "browser",
+    "developer-tools",
+    "electron",
+    "proxy",
+    "security-audit",
+    "network-throttling",
+    "fuzzer"
+  ],
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
+    "build:proxy": "go build -C sidecars/devproxy -o ../devproxy.exe .",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "tauri": "tauri",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron .\"",
-    "pack": "npm run build && electron-builder --win",
+    "pack": "npm run build:proxy && npm run build && electron-builder --win",
     "postinstall": "electron-builder install-app-deps"
   },
   "build": {
